@@ -1,4 +1,0 @@
-v1	named	intermediary
-FIELD	com/chatspliter/mixin/GameOptionsMixin	[Lnet/minecraft/client/option/KeyBinding;	allKeys	field_1839
-FIELD	com/chatspliter/mixin/InGameHudMixin	Lnet/minecraft/client/gui/hud/ChatHud;	chatHud	field_2021
-FIELD	com/chatspliter/mixin/InGameHudMixin	I	ticks	field_2042
