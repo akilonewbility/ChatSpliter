@@ -82,9 +82,10 @@ public class FilteredChatHud {
             mx.pushMatrix();
             mx.translate(x, y);
             mx.scale(s, s);
+            mx.translate(-x, -y);
         }
 
-        if (!messages.isEmpty()) renderMessages(ctx, useScale ? 0 : x, useScale ? 0 : y, w, h);
+        if (!messages.isEmpty()) renderMessages(ctx, x, y, w, h, useScale);
 
         if (useScale) {
             ctx.getMatrices().popMatrix();
@@ -126,11 +127,13 @@ public class FilteredChatHud {
         }
     }
 
-    private void renderMessages(DrawContext ctx, int bx, int by, int w, int h) {
+    private void renderMessages(DrawContext ctx, int bx, int by, int w, int h, boolean scaled) {
         TextRenderer tr = client.textRenderer;
         float s = (float) config.scale;
-        int lh = 9 + config.lineSpacing;
-        int textW = (int) ((w - 4) / s);
+        int lh = scaled ? Math.max(1, (int) ((9 + config.lineSpacing) / s))
+                        : (9 + config.lineSpacing);
+        int pad = scaled ? Math.max(1, (int) (2 / s)) : 2;
+        int textW = scaled ? (int) ((w - 4) / s) : (w - 4);
         if (textW <= 0 || lh <= 0) return;
 
         boolean chatOpen = isChatOpen();
@@ -161,7 +164,7 @@ public class FilteredChatHud {
         int n = 0;
         for (int i = end - 1; i >= start; i--) {
             RenderLine rl = allLines.get(i);
-            int lineY = by + h - 2 - lh - n * lh;
+            int lineY = by + h - pad - lh - n * lh;
             if (lineY < by) break;
 
             long ageMs = now - rl.receivedTime;
