@@ -70,6 +70,9 @@ public class FilterGroup {
     @SerializedName("scrollDir")
     public ScrollDir scrollDir = ScrollDir.BOTTOM_UP;
 
+    @SerializedName("caseSensitive")
+    public boolean caseSensitive = false;
+
     public enum TextAlign { LEFT, RIGHT }
     public enum ScrollDir { BOTTOM_UP, TOP_DOWN, TOP_ANCHORED }
 
@@ -103,18 +106,43 @@ public class FilterGroup {
         copy.showTitle = this.showTitle;
         copy.textAlign = this.textAlign;
         copy.scrollDir = this.scrollDir;
+        copy.caseSensitive = this.caseSensitive;
         return copy;
     }
 
     public boolean matches(String plainText) {
         if (keywords.isEmpty()) return false;
 
+        String lower = caseSensitive ? plainText : plainText.toLowerCase();
+        List<String> includes = new ArrayList<>();
+        List<String> excludes = new ArrayList<>();
+
+        for (String kw : keywords) {
+            String t = kw.trim();
+            if (t.isEmpty()) continue;
+            if (t.startsWith("not/")) {
+                excludes.add(caseSensitive ? t.substring(4) : t.substring(4).toLowerCase());
+            } else if (t.startsWith("!/")) {
+                excludes.add(caseSensitive ? t.substring(2) : t.substring(2).toLowerCase());
+            } else {
+                includes.add(caseSensitive ? t : t.toLowerCase());
+            }
+        }
+
+        // Exclusions checked first — any match immediately rejects
+        for (String ex : excludes) {
+            if (lower.contains(ex)) return false;
+        }
+
+        // No includes = match everything (only exclusions act as filter)
+        if (includes.isEmpty()) return true;
+
         return switch (matchMode) {
-            case ANY -> keywords.stream().anyMatch(k -> plainText.toLowerCase().contains(k.toLowerCase()));
-            case ALL -> keywords.stream().allMatch(k -> plainText.toLowerCase().contains(k.toLowerCase()));
+            case ANY -> includes.stream().anyMatch(lower::contains);
+            case ALL -> includes.stream().allMatch(lower::contains);
             case REGEX -> {
                 try {
-                    yield keywords.stream().anyMatch(k -> plainText.matches(k));
+                    yield includes.stream().anyMatch(plainText::matches);
                 } catch (Exception e) {
                     yield false;
                 }

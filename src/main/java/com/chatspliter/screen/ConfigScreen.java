@@ -162,6 +162,7 @@ public class ConfigScreen extends Screen {
         dst.showTitle = src.showTitle;
         dst.textAlign = src.textAlign;
         dst.scrollDir = src.scrollDir;
+        dst.caseSensitive = src.caseSensitive;
     }
 
     private void resetDefaults() {

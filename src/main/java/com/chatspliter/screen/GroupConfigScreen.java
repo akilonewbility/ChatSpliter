@@ -47,7 +47,7 @@ public class GroupConfigScreen extends Screen {
         tooltips.clear();
 
         int viewH = this.height - HEADER_H - FOOTER_H;
-        int totalRows = 21, contentH = totalRows * ROW_H;
+        int totalRows = 22, contentH = totalRows * ROW_H;
         maxScrollY = Math.max(0, contentH - viewH);
         scrollY = MathHelper.clamp(scrollY, 0, maxScrollY);
 
@@ -118,6 +118,12 @@ public class GroupConfigScreen extends Screen {
                 .values(FilterGroup.ScrollDir.values()).initially(group.scrollDir)
                 .build(RIGHT, ry, 120, 20, Text.empty(),
                         (btn, v) -> group.scrollDir = v));
+        ry += ROW_H;
+
+        // Case sensitive
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(group.caseSensitive)
+                .build(RIGHT, ry, 120, 20, Text.translatable("chatspliter.filter_group.case_sensitive"),
+                        (btn, v) -> group.caseSensitive = v));
 
         // Footer buttons
         int btnY = this.height - 26;
@@ -168,7 +174,7 @@ public class GroupConfigScreen extends Screen {
         // Scrollbar
         if (maxScrollY > 0) {
             int vh = this.height - HEADER_H - FOOTER_H;
-            int bh = Math.max(16, vh * vh / (21 * ROW_H));
+            int bh = Math.max(16, vh * vh / (22 * ROW_H));
             int by = HEADER_H + (vh - bh) * scrollY / maxScrollY;
             ctx.fill(this.width - 3, by, this.width - 1, by + bh, 0x88AAAAAA);
         }
