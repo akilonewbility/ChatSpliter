@@ -47,7 +47,7 @@ public class GroupConfigScreen extends Screen {
         tooltips.clear();
 
         int viewH = this.height - HEADER_H - FOOTER_H;
-        int totalRows = 19, contentH = totalRows * ROW_H;
+        int totalRows = 21, contentH = totalRows * ROW_H;
         maxScrollY = Math.max(0, contentH - viewH);
         scrollY = MathHelper.clamp(scrollY, 0, maxScrollY);
 
@@ -102,6 +102,22 @@ public class GroupConfigScreen extends Screen {
         addDrawableChild(CyclingButtonWidget.onOffBuilder(group.showTitle)
                 .build(RIGHT, ry, 120, 20, Text.translatable("chatspliter.filter_group.show_title"),
                         (btn, v) -> group.showTitle = v));
+        ry += ROW_H;
+
+        // Text align
+        addDrawableChild(CyclingButtonWidget.<FilterGroup.TextAlign>builder(
+                        a -> Text.translatable("chatspliter.filter_group.text_align." + a.name().toLowerCase()))
+                .values(FilterGroup.TextAlign.values()).initially(group.textAlign)
+                .build(RIGHT, ry, 120, 20, Text.empty(),
+                        (btn, v) -> group.textAlign = v));
+        ry += ROW_H;
+
+        // Scroll direction
+        addDrawableChild(CyclingButtonWidget.<FilterGroup.ScrollDir>builder(
+                        a -> Text.translatable("chatspliter.filter_group.scroll_dir." + a.name().toLowerCase()))
+                .values(FilterGroup.ScrollDir.values()).initially(group.scrollDir)
+                .build(RIGHT, ry, 120, 20, Text.empty(),
+                        (btn, v) -> group.scrollDir = v));
 
         // Footer buttons
         int btnY = this.height - 26;
@@ -152,7 +168,7 @@ public class GroupConfigScreen extends Screen {
         // Scrollbar
         if (maxScrollY > 0) {
             int vh = this.height - HEADER_H - FOOTER_H;
-            int bh = Math.max(16, vh * vh / (19 * ROW_H));
+            int bh = Math.max(16, vh * vh / (21 * ROW_H));
             int by = HEADER_H + (vh - bh) * scrollY / maxScrollY;
             ctx.fill(this.width - 3, by, this.width - 1, by + bh, 0x88AAAAAA);
         }

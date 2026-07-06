@@ -160,31 +160,51 @@ public class FilteredChatHud {
             start = Math.max(0, total - maxVis);
             scrolledLines = 0;
         }
-
         int end = Math.min(total, start + maxVis);
-        int n = 0;
-        for (int i = end - 1; i >= start; i--) {
-            RenderLine rl = allLines.get(i);
-            int lineY = by + effH - pad - lh - n * lh;
-            if (lineY < by) break;
 
+        FilterGroup.ScrollDir dir = config.scrollDir;
+        boolean rightAlign = config.textAlign == FilterGroup.TextAlign.RIGHT;
+        boolean anchored = dir == FilterGroup.ScrollDir.TOP_ANCHORED;
+
+        // Iteration: newest→oldest for BOTTOM_UP and TOP_DOWN; oldest→newest for TOP_ANCHORED
+        int i = anchored ? start : (end - 1);
+        int di = anchored ? 1 : -1;
+        int n = 0;
+
+        while (anchored ? (i < end) : (i >= start)) {
+            RenderLine rl = allLines.get(i);
             long ageMs = now - rl.receivedTime;
             int alpha = chatOpen ? 255 : calcFade(ageMs);
-            if (alpha <= 2) continue;
 
-            int tw = tr.getWidth(rl.text);
-            int bgA = (int) (config.opacity * alpha * 0.7) & 0xFF;
-            if (bgA > 10) {
-                ctx.fill(bx + 1, lineY - 1,
-                        Math.min(bx + effW - 1, bx + 1 + tw + 4), lineY + lh - 1,
-                        (bgA << 24) | (config.backgroundColor & 0x00FFFFFF));
+            // TOP_ANCHORED: skip fully faded lines, they don't take space
+            if (anchored && alpha <= 2) { i += di; continue; }
+
+            int lineY;
+            if (dir == FilterGroup.ScrollDir.BOTTOM_UP) {
+                lineY = by + effH - pad - lh - n * lh;
+                if (lineY < by) break;
+            } else {
+                lineY = by + pad + n * lh;
+                if (lineY + lh > by + effH) break;
             }
 
-            int tc = config.textColor & 0x00FFFFFF;
-            int ma = (int) (config.textOpacity * alpha) & 0xFF;
-            ctx.drawTextWithShadow(tr, rl.text, bx + 2, lineY, (ma << 24) | tc);
+            if (alpha > 2) {
+                int tw = tr.getWidth(rl.text);
+                int textX = rightAlign ? (bx + effW - 2 - tw) : (bx + 2);
+                int bgL = rightAlign ? Math.max(bx + 1, bx + effW - 2 - tw - 2) : (bx + 1);
+                int bgR = rightAlign ? (bx + effW - 1) : Math.min(bx + effW - 1, bx + 1 + tw + 4);
+
+                int bgA = (int) (config.opacity * alpha * 0.7) & 0xFF;
+                if (bgA > 10)
+                    ctx.fill(bgL, lineY - 1, bgR, lineY + lh - 1, (bgA << 24) | (config.backgroundColor & 0x00FFFFFF));
+
+                int tc = config.textColor & 0x00FFFFFF;
+                int ma = (int) (config.textOpacity * alpha) & 0xFF;
+                ctx.drawTextWithShadow(tr, rl.text, textX, lineY, (ma << 24) | tc);
+            }
             n++;
             if (n >= maxVis) break;
+            i += di;
         }
     }
 

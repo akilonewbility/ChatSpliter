@@ -64,6 +64,15 @@ public class FilterGroup {
     @SerializedName("showTitle")
     public boolean showTitle = true;
 
+    @SerializedName("textAlign")
+    public TextAlign textAlign = TextAlign.LEFT;
+
+    @SerializedName("scrollDir")
+    public ScrollDir scrollDir = ScrollDir.BOTTOM_UP;
+
+    public enum TextAlign { LEFT, RIGHT }
+    public enum ScrollDir { BOTTOM_UP, TOP_DOWN, TOP_ANCHORED }
+
     public FilterGroup() {
     }
 
@@ -92,6 +101,8 @@ public class FilterGroup {
         copy.showTimestamp = this.showTimestamp;
         copy.maxLines = this.maxLines;
         copy.showTitle = this.showTitle;
+        copy.textAlign = this.textAlign;
+        copy.scrollDir = this.scrollDir;
         return copy;
     }
 

@@ -160,6 +160,8 @@ public class ConfigScreen extends Screen {
         dst.showTimestamp = src.showTimestamp;
         dst.maxLines = src.maxLines;
         dst.showTitle = src.showTitle;
+        dst.textAlign = src.textAlign;
+        dst.scrollDir = src.scrollDir;
     }
 
     private void resetDefaults() {
