@@ -130,10 +130,11 @@ public class FilteredChatHud {
     private void renderMessages(DrawContext ctx, int bx, int by, int w, int h, boolean scaled) {
         TextRenderer tr = client.textRenderer;
         float s = (float) config.scale;
-        int lh = scaled ? Math.max(1, (int) ((9 + config.lineSpacing) / s))
-                        : (9 + config.lineSpacing);
-        int pad = scaled ? Math.max(1, (int) (2 / s)) : 2;
-        int textW = scaled ? (int) ((w - 4) / s) : (w - 4);
+        int effW = scaled ? (int) (w / s) : w;
+        int effH = scaled ? (int) (h / s) : h;
+        int lh = 9 + config.lineSpacing;
+        int pad = 2;
+        int textW = effW - 4;
         if (textW <= 0 || lh <= 0) return;
 
         boolean chatOpen = isChatOpen();
@@ -149,7 +150,7 @@ public class FilteredChatHud {
         if (allLines.isEmpty()) return;
 
         int total = allLines.size();
-        int maxVis = h / lh;
+        int maxVis = effH / lh;
         if (maxVis <= 0) return;
 
         int start;
@@ -164,7 +165,7 @@ public class FilteredChatHud {
         int n = 0;
         for (int i = end - 1; i >= start; i--) {
             RenderLine rl = allLines.get(i);
-            int lineY = by + h - pad - lh - n * lh;
+            int lineY = by + effH - pad - lh - n * lh;
             if (lineY < by) break;
 
             long ageMs = now - rl.receivedTime;
@@ -175,7 +176,7 @@ public class FilteredChatHud {
             int bgA = (int) (config.opacity * alpha * 0.7) & 0xFF;
             if (bgA > 10) {
                 ctx.fill(bx + 1, lineY - 1,
-                        Math.min(bx + w - 1, bx + 1 + tw + 4), lineY + lh - 1,
+                        Math.min(bx + effW - 1, bx + 1 + tw + 4), lineY + lh - 1,
                         (bgA << 24) | (config.backgroundColor & 0x00FFFFFF));
             }
 
