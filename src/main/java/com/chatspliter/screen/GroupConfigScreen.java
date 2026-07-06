@@ -56,13 +56,16 @@ public class GroupConfigScreen extends Screen {
         // Name
         addLabel(ry, "chatspliter.filter_group.name", "chatspliter.tooltip.name");
         TextFieldWidget nf = new TextFieldWidget(textRenderer, RIGHT, ry, 160, 20, Text.empty());
+        nf.setMaxLength(64);
         nf.setText(group.name); nf.setChangedListener(v -> group.name = v);
         addDrawableChild(nf);
         ry += ROW_H;
 
         // Keywords
         addLabel(ry, "chatspliter.filter_group.keywords", "chatspliter.tooltip.keywords");
-        TextFieldWidget kf = new TextFieldWidget(textRenderer, RIGHT, ry, 260, 20, Text.empty());
+        int kwW = Math.max(260, this.width - RIGHT - 10);
+        TextFieldWidget kf = new TextFieldWidget(textRenderer, RIGHT, ry, kwW, 20, Text.empty());
+        kf.setMaxLength(1024);
         kf.setText(String.join(", ", group.keywords));
         kf.setChangedListener(v -> { group.keywords.clear(); for (String s : v.split(",")) { String t = s.trim(); if (!t.isEmpty()) group.keywords.add(t); }});
         addDrawableChild(kf);
@@ -73,6 +76,12 @@ public class GroupConfigScreen extends Screen {
         addDrawableChild(CyclingButtonWidget.<MatchMode>builder(m -> Text.translatable(m.getTranslationKey()))
                 .values(MatchMode.values()).initially(group.matchMode)
                 .build(RIGHT, ry, 120, 20, Text.empty(), (btn, v) -> group.matchMode = v));
+        ry += ROW_H;
+
+        // Case sensitive
+        addDrawableChild(CyclingButtonWidget.onOffBuilder(group.caseSensitive)
+                .build(RIGHT, ry, 120, 20, Text.translatable("chatspliter.filter_group.case_sensitive"),
+                        (btn, v) -> group.caseSensitive = v));
         ry += ROW_H;
 
         // Enabled
@@ -118,12 +127,6 @@ public class GroupConfigScreen extends Screen {
                 .values(FilterGroup.ScrollDir.values()).initially(group.scrollDir)
                 .build(RIGHT, ry, 120, 20, Text.empty(),
                         (btn, v) -> group.scrollDir = v));
-        ry += ROW_H;
-
-        // Case sensitive
-        addDrawableChild(CyclingButtonWidget.onOffBuilder(group.caseSensitive)
-                .build(RIGHT, ry, 120, 20, Text.translatable("chatspliter.filter_group.case_sensitive"),
-                        (btn, v) -> group.caseSensitive = v));
 
         // Footer buttons
         int btnY = this.height - 26;
