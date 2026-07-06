@@ -1,0 +1,15 @@
+{
+    "required": true,
+    "package": "com.chatspliter.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "client": [
+        "ChatHudMixin",
+        "GameOptionsMixin",
+        "InGameHudMixin",
+        "MinecraftClientMixin",
+        "MouseMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}
