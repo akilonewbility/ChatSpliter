@@ -2,17 +2,21 @@ package com.chatspliter.hud;
 
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.config.FilterGroup;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
+
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -28,7 +32,7 @@ public class FilteredChatHud {
 
     private FilterGroup config;
     private final List<FilteredMessage> messages = new ArrayList<>();
-    private final MinecraftClient client;
+    private final Minecraft client;
     private int scrolledLines;
 
     // Settings button bounds (set during render)
@@ -43,7 +47,7 @@ public class FilteredChatHud {
 
     public FilteredChatHud(FilterGroup config) {
         this.config = config;
-        this.client = MinecraftClient.getInstance();
+        this.client = Minecraft.getInstance();
     }
 
     public FilterGroup getConfig() { return config; }
@@ -53,7 +57,7 @@ public class FilteredChatHud {
         this.config = newConfig;
     }
 
-    public void addMessage(Text message, int tickCounter) {
+    public void addMessage(Component message, int tickCounter) {
         if (!config.enabled || !config.matches(message.getString())) return;
         messages.add(new FilteredMessage(message.copy(), System.currentTimeMillis(),
                 LocalTime.now().format(TIME_FMT)));
@@ -72,11 +76,11 @@ public class FilteredChatHud {
 
     // ==================== Render ====================
 
-    public void render(DrawContext ctx, int tickCounter, int sw, int sh, SettingsOpener opener) {
+    public void render(GuiGraphics ctx, int tickCounter, int sw, int sh, SettingsOpener opener) {
         if (!config.enabled) return;
 
-        int x = MathHelper.clamp(config.x, 0, sw - config.width);
-        int y = MathHelper.clamp(config.y, 0, sh - config.height);
+        int x = Mth.clamp(config.x, 0, sw - config.width);
+        int y = Mth.clamp(config.y, 0, sh - config.height);
         int w = config.width;
         int h = config.height;
         boolean chatOpen = isChatOpen();
@@ -85,8 +89,8 @@ public class FilteredChatHud {
         float s = (float) config.scale;
         boolean useScale = s != 1.0f && s > 0.1f;
         if (useScale) {
-            var mx = ctx.getMatrices();
-            mx.push();
+            var mx = ctx.pose();
+            mx.pushPose();
             mx.translate((float) x, (float) y, 0);
             mx.scale(s, s, 1);
             mx.translate((float) -x, (float) -y, 0);
@@ -96,14 +100,14 @@ public class FilteredChatHud {
 
         // Hover tooltip rendering (outside scale matrix)
         if (!lineBounds.isEmpty()) {
-            double mx = client.mouse.getX() / client.getWindow().getScaleFactor();
-            double my = client.mouse.getY() / client.getWindow().getScaleFactor();
+            double mx = client.mouseHandler.xpos() / (double) client.getWindow().getGuiScale();
+            double my = client.mouseHandler.ypos() / (double) client.getWindow().getGuiScale();
             Style hovered = getHoveredStyle(mx, my, sw, sh);
             if (hovered != null) renderHoverTooltip(ctx, hovered.getHoverEvent(), (int) mx, (int) my);
         }
 
         if (useScale) {
-            ctx.getMatrices().pop();
+            ctx.pose().popPose();
         }
 
         // Edit border + settings button (not scaled)
@@ -117,19 +121,19 @@ public class FilteredChatHud {
 
             // Settings gear button (top-right corner)
             String gear = "⚙";
-            int gw = client.textRenderer.getWidth(gear) + 4;
+            int gw = client.font.width(gear) + 4;
             gearX = x + w - gw - 2;
             gearY = y + 3;
             gearW = gw;
             gearH = 11;
             ctx.fill(gearX, gearY, gearX + gearW, gearY + gearH, 0x66000000);
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(gear),
+            ctx.drawString(client.font, Component.literal(gear),
                     gearX + 2, gearY + 1, 0xFFFFCC00);
 
             if (messages.isEmpty()) {
                 String lbl = config.name;
-                int lw = client.textRenderer.getWidth(lbl);
-                ctx.drawTextWithShadow(client.textRenderer, Text.literal(lbl),
+                int lw = client.font.width(lbl);
+                ctx.drawString(client.font, Component.literal(lbl),
                         x + (w - lw) / 2, y + h / 2 - 4, 0x88AAAAAA);
             }
         }
@@ -137,13 +141,13 @@ public class FilteredChatHud {
         // Title — always show when enabled and messages exist
         if (config.showTitle && !messages.isEmpty()) {
             String lbl = config.name;
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(lbl),
-                    x + w - client.textRenderer.getWidth(lbl) - 4, y + 1, 0x55AAAAAA);
+            ctx.drawString(client.font, Component.literal(lbl),
+                    x + w - client.font.width(lbl) - 4, y + 1, 0x55AAAAAA);
         }
     }
 
-    private void renderMessages(DrawContext ctx, int bx, int by, int w, int h, boolean scaled) {
-        TextRenderer tr = client.textRenderer;
+    private void renderMessages(GuiGraphics ctx, int bx, int by, int w, int h, boolean scaled) {
+        Font tr = client.font;
         float s = (float) config.scale;
         int effW = scaled ? (int) (w / s) : w;
         int effH = scaled ? (int) (h / s) : h;
@@ -157,9 +161,9 @@ public class FilteredChatHud {
 
         List<RenderLine> allLines = new ArrayList<>();
         for (FilteredMessage msg : messages) {
-            Text dt = msg.content;
-            if (config.showTimestamp) dt = Text.literal("[" + msg.timestamp + "] ").append(dt);
-            for (OrderedText ot : tr.wrapLines(dt, textW))
+            Component dt = msg.content;
+            if (config.showTimestamp) dt = Component.literal("[" + msg.timestamp + "] ").append(dt);
+            for (FormattedCharSequence ot : tr.split(dt, textW))
                 allLines.add(new RenderLine(ot, msg.receivedTime));
         }
         if (allLines.isEmpty()) return;
@@ -206,7 +210,7 @@ public class FilteredChatHud {
             }
 
             if (alpha > 2) {
-                int tw = tr.getWidth(rl.text);
+                int tw = tr.width(rl.text);
                 int textX = rightAlign ? (bx + effW - 2 - tw) : (bx + 2);
                 int bgL = rightAlign ? Math.max(bx + 1, bx + effW - 2 - tw - 2) : (bx + 1);
                 int bgR = rightAlign ? (bx + effW - 1) : Math.min(bx + effW - 1, bx + 1 + tw + 4);
@@ -217,7 +221,7 @@ public class FilteredChatHud {
 
                 int tc = config.textColor & 0x00FFFFFF;
                 int ma = (int) (config.textOpacity * alpha) & 0xFF;
-                ctx.drawTextWithShadow(tr, rl.text, textX, lineY, (ma << 24) | tc);
+                ctx.drawString(tr, rl.text, textX, lineY, (ma << 24) | tc);
 
                 lineBounds.add(new LineBounds(rl.text, textX, lineY, tw, scaled));
             }
@@ -238,18 +242,18 @@ public class FilteredChatHud {
         return (int) (255 * (1.0 - (ageSec - fullSec) / fade));
     }
 
-    private void renderHoverTooltip(DrawContext ctx, HoverEvent event, int mx, int my) {
+    private void renderHoverTooltip(GuiGraphics ctx, HoverEvent event, int mx, int my) {
         if (event.getAction() == HoverEvent.Action.SHOW_TEXT) {
-            Text value = event.getValue(HoverEvent.Action.SHOW_TEXT);
+            Component value = event.getValue(HoverEvent.Action.SHOW_TEXT);
             String raw = value.getString();
             if (raw.contains("\n")) {
                 Style style = value.getStyle();
-                List<Text> lines = new ArrayList<>();
+                List<Component> lines = new ArrayList<>();
                 for (String line : raw.split("\n"))
-                    lines.add(Text.literal(line).setStyle(style));
-                ctx.drawTooltip(client.textRenderer, lines, mx, my);
+                    lines.add(Component.literal(line).setStyle(style));
+                ctx.renderComponentTooltip(client.font, lines, mx, my);
             } else {
-                ctx.drawTooltip(client.textRenderer, value, mx, my);
+                ctx.renderTooltip(client.font, value, mx, my);
             }
         }
     }
@@ -257,8 +261,8 @@ public class FilteredChatHud {
     // ==================== Hover / Click ====================
 
     public Style getHoveredStyle(double mx, double my, int sw, int sh) {
-        int hx = MathHelper.clamp(config.x, 0, sw - config.width);
-        int hy = MathHelper.clamp(config.y, 0, sh - config.height);
+        int hx = Mth.clamp(config.x, 0, sw - config.width);
+        int hy = Mth.clamp(config.y, 0, sh - config.height);
         float s = (float) config.scale;
 
         for (LineBounds lb : lineBounds) {
@@ -275,7 +279,7 @@ public class FilteredChatHud {
             if (mx >= lx && mx <= lx + lw && my >= ly && my <= ly + 9) {
                 int offset = (int) (mx - lx);
                 offset = lb.scaled ? (int)(offset / s) : offset;
-                return client.textRenderer.getTextHandler().getStyleAt(lb.text, offset);
+                return client.font.getSplitter().componentStyleAtWidth(lb.text, offset);
             }
         }
         return null;
@@ -284,16 +288,16 @@ public class FilteredChatHud {
     public boolean handleClick(double mx, double my, int sw, int sh) {
         Style style = getHoveredStyle(mx, my, sw, sh);
         if (style == null || style.getClickEvent() == null) return false;
-        if (client.currentScreen != null)
-            return client.currentScreen.handleTextClick(style);
+        if (client.screen != null)
+            return client.screen.handleComponentClicked(style);
         return false;
     }
 
     // ==================== Mouse ====================
 
     public boolean isMouseOver(double mx, double my, int sw, int sh) {
-        int x = MathHelper.clamp(config.x, 0, sw - config.width);
-        int y = MathHelper.clamp(config.y, 0, sh - config.height);
+        int x = Mth.clamp(config.x, 0, sw - config.width);
+        int y = Mth.clamp(config.y, 0, sh - config.height);
         return mx >= x && mx <= x + config.width && my >= y && my <= y + config.height;
     }
 
@@ -302,8 +306,8 @@ public class FilteredChatHud {
     }
 
     public int getInteractionZone(double mx, double my, int sw, int sh) {
-        int x = MathHelper.clamp(config.x, 0, sw - config.width);
-        int y = MathHelper.clamp(config.y, 0, sh - config.height);
+        int x = Mth.clamp(config.x, 0, sw - config.width);
+        int y = Mth.clamp(config.y, 0, sh - config.height);
         if (mx < x || mx > x + config.width || my < y || my > y + config.height) return 0;
         if (isOverSettingsButton(mx, my)) return 3; // settings button
         if (mx > x + config.width - 12 && my > y + config.height - 12) return 2; // resize
@@ -318,11 +322,11 @@ public class FilteredChatHud {
 
     public void onDrag(int mx, int my, int sw, int sh) {
         if (dragging) {
-            config.x = MathHelper.clamp(dox + (mx - dsx), 0, sw - config.width);
-            config.y = MathHelper.clamp(doy + (my - dsy), 0, sh - config.height);
+            config.x = Mth.clamp(dox + (mx - dsx), 0, sw - config.width);
+            config.y = Mth.clamp(doy + (my - dsy), 0, sh - config.height);
         } else if (resizing) {
-            config.width = MathHelper.clamp(dow + (mx - dsx), 60, sw - config.x);
-            config.height = MathHelper.clamp(doh + (my - dsy), 40, sh - config.y);
+            config.width = Mth.clamp(dow + (mx - dsx), 60, sw - config.x);
+            config.height = Mth.clamp(doh + (my - dsy), 40, sh - config.y);
         }
     }
 
@@ -334,12 +338,12 @@ public class FilteredChatHud {
 
     public void onScroll(double amount) {
         int maxS = Math.max(0, messages.size() - 1);
-        scrolledLines = MathHelper.clamp(scrolledLines + (int) amount, 0, maxS);
+        scrolledLines = Mth.clamp(scrolledLines + (int) amount, 0, maxS);
     }
 
-    private boolean isChatOpen() { return client.currentScreen instanceof ChatScreen; }
+    private boolean isChatOpen() { return client.screen instanceof ChatScreen; }
 
-    private record FilteredMessage(Text content, long receivedTime, String timestamp) {}
-    private record RenderLine(OrderedText text, long receivedTime) {}
-    private record LineBounds(OrderedText text, int x, int y, int w, boolean scaled) {}
+    private record FilteredMessage(Component content, long receivedTime, String timestamp) {}
+    private record RenderLine(FormattedCharSequence text, long receivedTime) {}
+    private record LineBounds(FormattedCharSequence text, int x, int y, int w, boolean scaled) {}
 }

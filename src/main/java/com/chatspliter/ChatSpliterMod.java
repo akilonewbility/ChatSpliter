@@ -3,70 +3,91 @@ package com.chatspliter;
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.hud.ChatHudManager;
 import com.chatspliter.screen.ConfigScreen;
-import net.fabricmc.api.ClientModInitializer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.ChatFormatting;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChatSpliterMod implements ClientModInitializer {
+@Mod(ChatSpliterMod.MOD_ID)
+public class ChatSpliterMod {
     public static final String MOD_ID = "chatspliter";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static final KeyBinding OPEN_CONFIG_KEY = new KeyBinding(
+    public static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "chatspliter.key.open_config",
-            InputUtil.Type.KEYSYM,
+            InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_K,
             "key.categories.misc"
     );
 
-    @Override
-    public void onInitializeClient() {
+    public ChatSpliterMod(IEventBus modEventBus, Dist dist) {
+        if (dist == Dist.CLIENT) {
+            modEventBus.addListener(this::clientSetup);
+        }
+    }
+
+    private void clientSetup(FMLClientSetupEvent event) {
         LOGGER.info("[ChatSpliter] Initializing...");
         ChatSpliterConfig.getInstance();
         ChatHudManager.getInstance().initialize();
         LOGGER.info("[ChatSpliter] Initialized successfully! Press K to open config.");
     }
 
-    public static void onClientTick(MinecraftClient client) {
-        if (client.player == null) return;
-        while (OPEN_CONFIG_KEY.wasPressed()) {
-            client.setScreen(new ConfigScreen(null));
-        }
-    }
-
     /** Inject a client-side test message with click and hover events. */
-    public static void injectDebugMessage(MinecraftClient client) {
-        Text msg = Text.empty()
-                .append(Text.literal("[ChatSpliter Debug] ").formatted(Formatting.GOLD))
-                .append(Text.literal("[GitHub]").setStyle(Style.EMPTY
+    public static void injectDebugMessage(Minecraft client) {
+        Component msg = Component.empty()
+                .append(Component.literal("[ChatSpliter Debug] ").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal("[GitHub]").setStyle(Style.EMPTY
                         .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com"))
-                        .withColor(Formatting.AQUA)))
-                .append(Text.literal(" "))
-                .append(Text.literal("[Say Hi]").setStyle(Style.EMPTY
+                        .withColor(ChatFormatting.AQUA)))
+                .append(Component.literal(" "))
+                .append(Component.literal("[Say Hi]").setStyle(Style.EMPTY
                         .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "hi"))
-                        .withColor(Formatting.GREEN)))
-                .append(Text.literal(" "))
-                .append(Text.literal("[Hover]").setStyle(Style.EMPTY
+                        .withColor(ChatFormatting.GREEN)))
+                .append(Component.literal(" "))
+                .append(Component.literal("[Hover]").setStyle(Style.EMPTY
                         .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                Text.literal("悬停测试成功！").formatted(Formatting.YELLOW)))
-                        .withColor(Formatting.YELLOW)));
+                                Component.literal("悬停测试成功！").withStyle(ChatFormatting.YELLOW)))
+                        .withColor(ChatFormatting.YELLOW)));
 
-        // Route through our HUD system
         ChatHudManager.getInstance().onChatMessage(msg, (int) (System.currentTimeMillis() / 50));
 
-        // Also show in vanilla chat for comparison
         if (client.player != null) {
-            client.player.sendMessage(msg, false);
+            client.player.sendSystemMessage(msg);
         }
 
         LOGGER.info("[ChatSpliter] Debug test message injected.");
+    }
+
+    @EventBusSubscriber(modid = MOD_ID, value = Dist.CLIENT)
+    public static class ClientEvents {
+        @SubscribeEvent
+        public static void registerKeys(RegisterKeyMappingsEvent event) {
+            event.register(OPEN_CONFIG_KEY);
+        }
+
+        @SubscribeEvent
+        public static void onClientTick(ClientTickEvent.Post event) {
+            Minecraft client = Minecraft.getInstance();
+            if (client.player == null) return;
+            while (OPEN_CONFIG_KEY.consumeClick()) {
+                client.setScreen(new ConfigScreen(null));
+            }
+        }
     }
 }

@@ -1,10 +1,10 @@
 package com.chatspliter.mixin;
 
 import com.chatspliter.hud.ChatHudManager;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.client.gui.hud.InGameHud;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.ChatComponent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,34 +12,28 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(InGameHud.class)
+@Mixin(Gui.class)
 public abstract class InGameHudMixin {
 
     @Shadow
     @Final
-    private ChatHud chatHud;
+    private ChatComponent chat;
 
     @Shadow
-    private int ticks;
+    private int tickCount;
 
-    /**
-     * Render our custom filtered chat HUDs after the main game HUD.
-     */
     @Inject(method = "render", at = @At("RETURN"))
-    private void onRender(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+    private void onRender(GuiGraphics context, DeltaTracker partialTick, CallbackInfo ci) {
         try {
-            ChatHudManager.getInstance().render(context, ticks);
+            ChatHudManager.getInstance().render(context, tickCount);
         } catch (Exception e) {
             // Silently ignore rendering errors
         }
     }
 
-    /**
-     * Periodically refresh filtered HUDs to remove expired messages.
-     */
     @Inject(method = "render", at = @At("HEAD"))
-    private void beforeRender(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        if (ticks % 20 == 0) {
+    private void beforeRender(GuiGraphics context, DeltaTracker partialTick, CallbackInfo ci) {
+        if (tickCount % 20 == 0) {
             try {
                 ChatHudManager.getInstance().refreshAll();
             } catch (Exception e) {

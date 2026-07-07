@@ -3,12 +3,11 @@ package com.chatspliter.screen;
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.config.FilterGroup;
 import com.chatspliter.hud.ChatHudManager;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.CyclingButtonWidget;
-import net.minecraft.client.gui.widget.TextWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +17,11 @@ public class ConfigScreen extends Screen {
     private final ChatSpliterConfig config;
     private final List<FilterGroup> workingGroups;
 
-    private CyclingButtonWidget<Boolean> enabledButton;
-    private CyclingButtonWidget<Boolean> hideMatchedButton;
+    private CycleButton<Boolean> enabledButton;
+    private CycleButton<Boolean> hideMatchedButton;
 
     public ConfigScreen(Screen parent) {
-        super(Text.translatable("chatspliter.config.title"));
+        super(Component.translatable("chatspliter.config.title"));
         this.parent = parent;
         this.config = ChatSpliterConfig.getInstance();
         this.workingGroups = new ArrayList<>();
@@ -34,33 +33,26 @@ public class ConfigScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-
         int centerX = this.width / 2;
 
-        addDrawableChild(new TextWidget(centerX - 80, 8, 160, 20,
-                Text.translatable("chatspliter.config.title"), textRenderer).alignCenter());
-
-        enabledButton = CyclingButtonWidget.onOffBuilder(config.enabled)
-                .build(10, 32, 150, 20,
-                        Text.translatable("chatspliter.config.enabled"),
+        enabledButton = CycleButton.onOffBuilder(config.enabled)
+                .create(10, 32, 150, 20,
+                        Component.translatable("chatspliter.config.enabled"),
                         (btn, val) -> {});
-        addDrawableChild(enabledButton);
+        addRenderableWidget(enabledButton);
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.literal("全局设置"),
-                        btn -> client.setScreen(new GlobalConfigScreen(this)))
-                .dimensions(170, 32, 60, 20).build());
+        addRenderableWidget(Button.builder(
+                        Component.literal("全局设置"),
+                        btn -> minecraft.setScreen(new GlobalConfigScreen(this)))
+                .bounds(170, 32, 60, 20).build());
 
-        hideMatchedButton = CyclingButtonWidget.onOffBuilder(config.hideMatchedFromMain)
-                .build(10, 56, 220, 20,
-                        Text.translatable("chatspliter.config.hide_matched_from_main"),
+        hideMatchedButton = CycleButton.onOffBuilder(config.hideMatchedFromMain)
+                .create(10, 56, 220, 20,
+                        Component.translatable("chatspliter.config.hide_matched_from_main"),
                         (btn, val) -> {});
-        addDrawableChild(hideMatchedButton);
+        addRenderableWidget(hideMatchedButton);
 
-        addDrawableChild(new TextWidget(10, 84, 200, 12,
-                Text.translatable("chatspliter.config.filter_groups"), textRenderer));
-
-        int y = 100;
+        int y = 84;
         int maxVisible = Math.min(workingGroups.size(), (this.height - 170) / 30);
 
         for (int i = 0; i < maxVisible; i++) {
@@ -68,68 +60,97 @@ public class ConfigScreen extends Screen {
             FilterGroup group = workingGroups.get(i);
 
             String statusIcon = group.enabled ? "§a●" : "§7○";
-            addDrawableChild(new TextWidget(14, y + 6, 200, 12,
-                    Text.literal(statusIcon + " " + group.name + "  §7[" + group.keywords.size() + " kw]"),
-                    textRenderer));
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("⚙"),
+            addRenderableWidget(Button.builder(
+                            Component.literal("⚙"),
                             btn -> openGroupEditor(index))
-                    .dimensions(this.width - 90, y, 20, 20).build());
+                    .bounds(this.width - 90, y, 20, 20).build());
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("✕"),
+            addRenderableWidget(Button.builder(
+                            Component.literal("✕"),
                             btn -> removeGroup(index))
-                    .dimensions(this.width - 65, y, 20, 20).build());
+                    .bounds(this.width - 65, y, 20, 20).build());
 
             y += 28;
         }
 
         int buttonY = this.height - 28;
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("chatspliter.button.add_group"),
+        addRenderableWidget(Button.builder(
+                        Component.translatable("chatspliter.button.add_group"),
                         btn -> addGroup())
-                .dimensions(10, buttonY, 120, 20).build());
+                .bounds(10, buttonY, 120, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("chatspliter.button.reset"),
+        addRenderableWidget(Button.builder(
+                        Component.translatable("chatspliter.button.reset"),
                         btn -> resetDefaults())
-                .dimensions(135, buttonY, 75, 20).build());
+                .bounds(135, buttonY, 75, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.literal("调试"),
-                        btn -> client.setScreen(new DebugScreen(this)))
-                .dimensions(215, buttonY, 50, 20).build());
+        addRenderableWidget(Button.builder(
+                        Component.literal("调试"),
+                        btn -> minecraft.setScreen(new DebugScreen(this)))
+                .bounds(215, buttonY, 50, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("chatspliter.button.done"),
+        addRenderableWidget(Button.builder(
+                        Component.translatable("chatspliter.button.done"),
                         btn -> saveAndClose())
-                .dimensions(this.width - 160, buttonY, 70, 20).build());
+                .bounds(this.width - 160, buttonY, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("chatspliter.button.cancel"),
-                        btn -> close())
-                .dimensions(this.width - 80, buttonY, 70, 20).build());
+        addRenderableWidget(Button.builder(
+                        Component.translatable("chatspliter.button.cancel"),
+                        btn -> onClose())
+                .bounds(this.width - 80, buttonY, 70, 20).build());
+    }
+
+    @Override
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+        super.render(context, mouseX, mouseY, delta);
+
+        // Title
+        context.drawCenteredString(font,
+                Component.translatable("chatspliter.config.title"),
+                this.width / 2, 8, 0xFFFFFF);
+
+        // Filter groups label
+        context.drawString(font,
+                Component.translatable("chatspliter.config.filter_groups"),
+                10, 84, 0xAAAAAA);
+
+        // Group entries
+        int y = 90;
+        int maxVisible = Math.min(workingGroups.size(), (this.height - 170) / 30);
+        for (int i = 0; i < maxVisible; i++) {
+            FilterGroup group = workingGroups.get(i);
+            String statusIcon = group.enabled ? "§a●" : "§7○";
+            context.drawString(font,
+                    Component.literal(statusIcon + " " + group.name + "  §7[" + group.keywords.size() + " kw]"),
+                    14, y + 6, 0xFFFFFF);
+            y += 28;
+        }
+
+        // Counter
+        context.drawString(font,
+                Component.literal(workingGroups.size() + " groups"),
+                this.width - 100, 86, 0x666666);
     }
 
     private void openGroupEditor(int index) {
         if (index >= 0 && index < workingGroups.size()) {
-            client.setScreen(new GroupConfigScreen(this, workingGroups.get(index)));
+            minecraft.setScreen(new GroupConfigScreen(this, workingGroups.get(index)));
         }
     }
 
     private void addGroup() {
         FilterGroup newGroup = new FilterGroup("Group " + (workingGroups.size() + 1));
         workingGroups.add(newGroup);
-        clearChildren();
+        clearWidgets();
         init();
     }
 
     private void removeGroup(int index) {
         if (index >= 0 && index < workingGroups.size()) {
             workingGroups.remove(index);
-            clearChildren();
+            clearWidgets();
             init();
         }
     }
@@ -138,7 +159,6 @@ public class ConfigScreen extends Screen {
         config.enabled = enabledButton.getValue();
         config.hideMatchedFromMain = hideMatchedButton.getValue();
 
-        // Update in-place: keep existing FilterGroup objects so HUDs retain history
         while (config.filterGroups.size() > workingGroups.size())
             config.filterGroups.remove(config.filterGroups.size() - 1);
         for (int i = 0; i < workingGroups.size(); i++) {
@@ -151,7 +171,7 @@ public class ConfigScreen extends Screen {
         }
         config.save();
         ChatHudManager.getInstance().syncFromConfig();
-        close();
+        onClose();
     }
 
     private void copyInto(FilterGroup src, FilterGroup dst) {
@@ -181,19 +201,12 @@ public class ConfigScreen extends Screen {
         for (FilterGroup g : config.filterGroups) {
             workingGroups.add(g.copy());
         }
+        clearWidgets();
         init();
     }
 
     @Override
-    public void close() {
-        client.setScreen(parent);
-    }
-
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawTextWithShadow(textRenderer,
-                Text.literal(workingGroups.size() + " groups"),
-                this.width - 100, 86, 0x666666);
+    public void onClose() {
+        minecraft.setScreen(parent);
     }
 }

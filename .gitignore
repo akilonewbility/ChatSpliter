@@ -37,3 +37,6 @@ hs_err_pid*
 *.log
 *.tmp
 local.properties
+
+#forge
+runs/

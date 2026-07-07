@@ -3,7 +3,7 @@ package com.chatspliter.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
-import net.fabricmc.loader.api.FabricLoader;
+import net.neoforged.fml.loading.FMLPaths;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatSpliterConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("chatspliter.json");
+    private static final Path CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("chatspliter.json");
 
     @SerializedName("enabled")
     public boolean enabled = true;

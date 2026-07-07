@@ -2,23 +2,18 @@ package com.chatspliter.mixin;
 
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.hud.ChatHudManager;
-import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Mixin into ChatHud to intercept new chat messages.
- * - Routes messages to filtered HUDs
- * - Optionally hides matched messages from the main chat
- */
-@Mixin(ChatHud.class)
+@Mixin(ChatComponent.class)
 public abstract class ChatHudMixin {
 
-    @Inject(method = "addMessage(Lnet/minecraft/text/Text;)V", at = @At("HEAD"), cancellable = true)
-    private void onAddMessage(Text message, CallbackInfo ci) {
+    @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;)V", at = @At("HEAD"), cancellable = true)
+    private void onAddMessage(Component message, CallbackInfo ci) {
         ChatSpliterConfig config = ChatSpliterConfig.getInstance();
         if (!config.enabled) return;
 
@@ -26,7 +21,6 @@ public abstract class ChatHudMixin {
             int currentTick = (int) (System.currentTimeMillis() / 50);
             ChatHudManager.getInstance().onChatMessage(message, currentTick);
 
-            // Hide from main chat if the setting is enabled and message matches
             if (config.hideMatchedFromMain && config.findMatchingGroup(message.getString()) != null) {
                 ci.cancel();
             }

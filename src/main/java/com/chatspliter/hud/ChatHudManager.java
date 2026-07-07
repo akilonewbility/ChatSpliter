@@ -3,9 +3,9 @@ package com.chatspliter.hud;
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.config.FilterGroup;
 import com.chatspliter.screen.GroupConfigScreen;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,9 +13,9 @@ import java.util.List;
 public class ChatHudManager {
     private static ChatHudManager INSTANCE;
     private final List<FilteredChatHud> huds = new ArrayList<>();
-    private final MinecraftClient client;
+    private final Minecraft client;
 
-    private ChatHudManager() { this.client = MinecraftClient.getInstance(); }
+    private ChatHudManager() { this.client = Minecraft.getInstance(); }
 
     public static ChatHudManager getInstance() {
         if (INSTANCE == null) INSTANCE = new ChatHudManager();
@@ -26,28 +26,25 @@ public class ChatHudManager {
 
     public void syncFromConfig() {
         List<FilterGroup> groups = ChatSpliterConfig.getInstance().filterGroups;
-        // Remove extra HUDs
         while (huds.size() > groups.size())
             huds.remove(huds.size() - 1);
-        // Add missing HUDs
         while (huds.size() < groups.size())
             huds.add(new FilteredChatHud(groups.get(huds.size())));
-        // Update config references for existing HUDs (preserves message history)
         for (int i = 0; i < huds.size(); i++)
             huds.get(i).replaceConfig(groups.get(i));
     }
 
     public List<FilteredChatHud> getHuds() { return huds; }
 
-    public void onChatMessage(Text message, int tickCounter) {
+    public void onChatMessage(Component message, int tickCounter) {
         if (!ChatSpliterConfig.getInstance().enabled) return;
         for (FilteredChatHud hud : huds) hud.addMessage(message, tickCounter);
     }
 
-    public void render(DrawContext context, int tickCounter) {
+    public void render(GuiGraphics context, int tickCounter) {
         if (!ChatSpliterConfig.getInstance().enabled || client.player == null) return;
         var w = client.getWindow();
-        int sw = w.getScaledWidth(), sh = w.getScaledHeight();
+        int sw = w.getGuiScaledWidth(), sh = w.getGuiScaledHeight();
         for (FilteredChatHud hud : huds) {
             hud.render(context, tickCounter, sw, sh,
                     g -> client.setScreen(new GroupConfigScreen(null, g)));
@@ -61,7 +58,7 @@ public class ChatHudManager {
     public FilteredChatHud getHudAt(double mx, double my) {
         var w = client.getWindow();
         for (FilteredChatHud h : huds)
-            if (h.isMouseOver(mx, my, w.getScaledWidth(), w.getScaledHeight())) return h;
+            if (h.isMouseOver(mx, my, w.getGuiScaledWidth(), w.getGuiScaledHeight())) return h;
         return null;
     }
 
@@ -75,7 +72,7 @@ public class ChatHudManager {
         FilteredChatHud h = getHudAt(mx, my);
         if (h == null) return false;
         var w = client.getWindow();
-        int sw = w.getScaledWidth(), sh = w.getScaledHeight();
+        int sw = w.getGuiScaledWidth(), sh = w.getGuiScaledHeight();
 
         if (h.handleClick(mx, my, sw, sh)) return true;
 
@@ -95,7 +92,7 @@ public class ChatHudManager {
         var w = client.getWindow();
         for (FilteredChatHud h : huds) {
             if (h.isDragging()) {
-                h.onDrag((int) mx, (int) my, w.getScaledWidth(), w.getScaledHeight());
+                h.onDrag((int) mx, (int) my, w.getGuiScaledWidth(), w.getGuiScaledHeight());
                 return true;
             }
         }

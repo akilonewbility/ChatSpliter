@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "chatspliter"
+version = "${file.jarVersion}"
+displayName = "ChatSpliter"
+description = "Split vanilla chat into multiple independent HUDs with keyword filtering"
+authors = ["ChatSpliter"]
+logoFile = "assets/chatspliter/icon.png"
+
+[[dependencies.chatspliter]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.chatspliter]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21,1.22)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[mixins]]
+config = "chatspliter.mixins.json"
