@@ -86,10 +86,10 @@ public class FilteredChatHud {
         boolean useScale = s != 1.0f && s > 0.1f;
         if (useScale) {
             var mx = ctx.getMatrices();
-            mx.pushMatrix();
-            mx.translate(x, y);
-            mx.scale(s, s);
-            mx.translate(-x, -y);
+            mx.push();
+            mx.translate((float) x, (float) y, 0);
+            mx.scale(s, s, 1);
+            mx.translate((float) -x, (float) -y, 0);
         }
 
         if (!messages.isEmpty()) renderMessages(ctx, x, y, w, h, useScale);
@@ -103,7 +103,7 @@ public class FilteredChatHud {
         }
 
         if (useScale) {
-            ctx.getMatrices().popMatrix();
+            ctx.getMatrices().pop();
         }
 
         // Edit border + settings button (not scaled)
@@ -239,16 +239,17 @@ public class FilteredChatHud {
     }
 
     private void renderHoverTooltip(DrawContext ctx, HoverEvent event, int mx, int my) {
-        if (event instanceof HoverEvent.ShowText st) {
-            String raw = st.value().getString();
+        if (event.getAction() == HoverEvent.Action.SHOW_TEXT) {
+            Text value = event.getValue(HoverEvent.Action.SHOW_TEXT);
+            String raw = value.getString();
             if (raw.contains("\n")) {
-                Style style = st.value().getStyle();
+                Style style = value.getStyle();
                 List<Text> lines = new ArrayList<>();
                 for (String line : raw.split("\n"))
                     lines.add(Text.literal(line).setStyle(style));
                 ctx.drawTooltip(client.textRenderer, lines, mx, my);
             } else {
-                ctx.drawTooltip(client.textRenderer, st.value(), mx, my);
+                ctx.drawTooltip(client.textRenderer, value, mx, my);
             }
         }
     }

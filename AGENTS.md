@@ -1,6 +1,6 @@
 # ChatSpliter — AI Agent Instructions
 
-Minecraft 1.21+ Fabric 客户端模组（编译目标 1.21.8），通过关键词筛选将原版聊天窗口分离为多个独立可自定义的 HUD。
+Minecraft 1.21+ Fabric 客户端模组（编译目标 1.21），通过关键词筛选将原版聊天窗口分离为多个独立可自定义的 HUD。
 
 ## 构建与运行
 
