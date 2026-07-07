@@ -58,8 +58,8 @@ public class FilterGroup {
     @SerializedName("showTimestamp")
     public boolean showTimestamp = false;
 
-    @SerializedName("maxLines")
-    public int maxLines = 100;
+    @SerializedName("maxHistory")
+    public int maxHistory = 200;
 
     @SerializedName("showTitle")
     public boolean showTitle = true;
@@ -102,7 +102,7 @@ public class FilterGroup {
         copy.textColor = this.textColor;
         copy.backgroundColor = this.backgroundColor;
         copy.showTimestamp = this.showTimestamp;
-        copy.maxLines = this.maxLines;
+        copy.maxHistory = this.maxHistory;
         copy.showTitle = this.showTitle;
         copy.textAlign = this.textAlign;
         copy.scrollDir = this.scrollDir;

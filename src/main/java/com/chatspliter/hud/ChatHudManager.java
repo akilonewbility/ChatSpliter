@@ -76,9 +76,11 @@ public class ChatHudManager {
         if (h == null) return false;
         var w = client.getWindow();
         int sw = w.getScaledWidth(), sh = w.getScaledHeight();
+
+        if (h.handleClick(mx, my, sw, sh)) return true;
+
         int zone = h.getInteractionZone(mx, my, sw, sh);
         if (zone == 3) {
-            // Settings button clicked
             client.setScreen(new GroupConfigScreen(null, h.getConfig()));
             return true;
         }

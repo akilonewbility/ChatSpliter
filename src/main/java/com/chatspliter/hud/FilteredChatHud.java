@@ -6,8 +6,12 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 import java.time.LocalTime;
@@ -16,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FilteredChatHud {
-    private static final long HISTORY_MS = 600_000;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public interface SettingsOpener {
@@ -30,6 +33,9 @@ public class FilteredChatHud {
 
     // Settings button bounds (set during render)
     private int gearX, gearY, gearW, gearH;
+
+    // Rendered line bounds for hover/click detection
+    private final List<LineBounds> lineBounds = new ArrayList<>();
 
     // Drag
     private boolean dragging, resizing;
@@ -51,16 +57,17 @@ public class FilteredChatHud {
         if (!config.enabled || !config.matches(message.getString())) return;
         messages.add(new FilteredMessage(message.copy(), System.currentTimeMillis(),
                 LocalTime.now().format(TIME_FMT)));
-        while (messages.size() > config.maxLines * 2) messages.remove(0);
+        while (messages.size() > config.maxHistory) messages.remove(0);
         scrolledLines = 0;
     }
 
     public void clear() { messages.clear(); scrolledLines = 0; }
 
     public void refresh() {
-        long cutoff = System.currentTimeMillis() - HISTORY_MS;
-        messages.removeIf(m -> m.receivedTime < cutoff);
-        while (messages.size() > config.maxLines * 2) messages.remove(0);
+        int mins = ChatSpliterConfig.getInstance().historyMinutes;
+        long cutoff = mins <= 0 ? 0 : System.currentTimeMillis() - (long) mins * 60_000L;
+        if (cutoff > 0) messages.removeIf(m -> m.receivedTime < cutoff);
+        while (messages.size() > config.maxHistory) messages.remove(0);
     }
 
     // ==================== Render ====================
@@ -86,6 +93,14 @@ public class FilteredChatHud {
         }
 
         if (!messages.isEmpty()) renderMessages(ctx, x, y, w, h, useScale);
+
+        // Hover tooltip rendering (outside scale matrix)
+        if (!lineBounds.isEmpty()) {
+            double mx = client.mouse.getX() / client.getWindow().getScaleFactor();
+            double my = client.mouse.getY() / client.getWindow().getScaleFactor();
+            Style hovered = getHoveredStyle(mx, my, sw, sh);
+            if (hovered != null) renderHoverTooltip(ctx, hovered.getHoverEvent(), (int) mx, (int) my);
+        }
 
         if (useScale) {
             ctx.getMatrices().popMatrix();
@@ -171,6 +186,8 @@ public class FilteredChatHud {
         int di = anchored ? 1 : -1;
         int n = 0;
 
+        lineBounds.clear();
+
         while (anchored ? (i < end) : (i >= start)) {
             RenderLine rl = allLines.get(i);
             long ageMs = now - rl.receivedTime;
@@ -201,6 +218,8 @@ public class FilteredChatHud {
                 int tc = config.textColor & 0x00FFFFFF;
                 int ma = (int) (config.textOpacity * alpha) & 0xFF;
                 ctx.drawTextWithShadow(tr, rl.text, textX, lineY, (ma << 24) | tc);
+
+                lineBounds.add(new LineBounds(rl.text, textX, lineY, tw, scaled));
             }
             n++;
             if (n >= maxVis) break;
@@ -217,6 +236,56 @@ public class FilteredChatHud {
         if (ageSec < fullSec) return 255;
         if (ageSec >= total) return 0;
         return (int) (255 * (1.0 - (ageSec - fullSec) / fade));
+    }
+
+    private void renderHoverTooltip(DrawContext ctx, HoverEvent event, int mx, int my) {
+        if (event instanceof HoverEvent.ShowText st) {
+            String raw = st.value().getString();
+            if (raw.contains("\n")) {
+                Style style = st.value().getStyle();
+                List<Text> lines = new ArrayList<>();
+                for (String line : raw.split("\n"))
+                    lines.add(Text.literal(line).setStyle(style));
+                ctx.drawTooltip(client.textRenderer, lines, mx, my);
+            } else {
+                ctx.drawTooltip(client.textRenderer, st.value(), mx, my);
+            }
+        }
+    }
+
+    // ==================== Hover / Click ====================
+
+    public Style getHoveredStyle(double mx, double my, int sw, int sh) {
+        int hx = MathHelper.clamp(config.x, 0, sw - config.width);
+        int hy = MathHelper.clamp(config.y, 0, sh - config.height);
+        float s = (float) config.scale;
+
+        for (LineBounds lb : lineBounds) {
+            int lx, ly, lw;
+            if (lb.scaled) {
+                lx = hx + (int)((lb.x - hx) * s);
+                ly = hy + (int)((lb.y - hy) * s);
+                lw = (int)(lb.w * s);
+            } else {
+                lx = lb.x;
+                ly = lb.y;
+                lw = lb.w;
+            }
+            if (mx >= lx && mx <= lx + lw && my >= ly && my <= ly + 9) {
+                int offset = (int) (mx - lx);
+                offset = lb.scaled ? (int)(offset / s) : offset;
+                return client.textRenderer.getTextHandler().getStyleAt(lb.text, offset);
+            }
+        }
+        return null;
+    }
+
+    public boolean handleClick(double mx, double my, int sw, int sh) {
+        Style style = getHoveredStyle(mx, my, sw, sh);
+        if (style == null || style.getClickEvent() == null) return false;
+        if (client.currentScreen != null)
+            return client.currentScreen.handleTextClick(style);
+        return false;
     }
 
     // ==================== Mouse ====================
@@ -271,4 +340,5 @@ public class FilteredChatHud {
 
     private record FilteredMessage(Text content, long receivedTime, String timestamp) {}
     private record RenderLine(OrderedText text, long receivedTime) {}
+    private record LineBounds(OrderedText text, int x, int y, int w, boolean scaled) {}
 }
