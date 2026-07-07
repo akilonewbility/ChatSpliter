@@ -1,5 +1,6 @@
 package com.chatspliter.screen;
 
+import com.chatspliter.RenderHelper;
 import com.chatspliter.config.FilterGroup;
 import com.chatspliter.config.MatchMode;
 import net.minecraft.client.gui.DrawContext;
@@ -9,6 +10,7 @@ import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.TextWidget;
 import net.minecraft.text.Text;
+import net.minecraft.text.Style;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
@@ -139,7 +141,9 @@ public class GroupConfigScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
         super.render(ctx, mx, my, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("§l" + group.name), this.width / 2, 6, 0xFFFFFF);
+        RenderHelper.drawCenteredTextWithShadow(ctx, textRenderer,
+                Text.literal(group.name).setStyle(Style.EMPTY.withBold(true)),
+                this.width / 2, 6, 0xFFFFFF);
         if (maxScrollY > 0) {
             int vh = this.height - HEADER_H - FOOTER_H;
             int bh = Math.max(16, vh * vh / (21 * ROW_H));
@@ -160,7 +164,7 @@ public class GroupConfigScreen extends Screen {
         // Tooltips
         for (var e : tooltips.entrySet()) {
             if (e.getValue() != null && mx >= LEFT && mx <= this.width - 10 && my >= e.getKey() && my < e.getKey() + ROW_H) {
-                ctx.drawTooltip(textRenderer, Text.translatable(e.getValue()), mx, my);
+                try { ctx.drawTooltip(textRenderer, Text.translatable(e.getValue()), mx, my); } catch (Throwable ignored) {}
                 break;
             }
         }
@@ -231,3 +235,4 @@ public class GroupConfigScreen extends Screen {
         }
     }
 }
+

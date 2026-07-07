@@ -1,5 +1,6 @@
 package com.chatspliter.hud;
 
+import com.chatspliter.RenderHelper;
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.config.FilterGroup;
 import net.minecraft.client.MinecraftClient;
@@ -11,9 +12,9 @@ import net.minecraft.text.HoverEvent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
+import java.lang.reflect.Method;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -81,18 +82,21 @@ public class FilteredChatHud {
         int h = config.height;
         boolean chatOpen = isChatOpen();
 
-        // Apply text scale via matrix transform
+        // Apply text scale via matrix transform (cross-version via reflection)
         float s = (float) config.scale;
         boolean useScale = s != 1.0f && s > 0.1f;
+        Object matrixStack = null;
         if (useScale) {
-            var mx = ctx.getMatrices();
-            mx.push();
-            mx.translate((float) x, (float) y, 0);
-            mx.scale(s, s, 1);
-            mx.translate((float) -x, (float) -y, 0);
+            matrixStack = getMatrixStack(ctx);
+            if (matrixStack != null) {
+                pushMatrix(matrixStack);
+                translateMatrix(matrixStack, (float) x, (float) y, 0);
+                scaleMatrix(matrixStack, s, s, 1);
+                translateMatrix(matrixStack, (float) -x, (float) -y, 0);
+            }
         }
 
-        if (!messages.isEmpty()) renderMessages(ctx, x, y, w, h, useScale);
+        if (!messages.isEmpty()) renderMessages(ctx, x, y, w, h, useScale && matrixStack != null);
 
         // Hover tooltip rendering (outside scale matrix)
         if (!lineBounds.isEmpty()) {
@@ -102,8 +106,8 @@ public class FilteredChatHud {
             if (hovered != null) renderHoverTooltip(ctx, hovered.getHoverEvent(), (int) mx, (int) my);
         }
 
-        if (useScale) {
-            ctx.getMatrices().pop();
+        if (useScale && matrixStack != null) {
+            popMatrix(matrixStack);
         }
 
         // Edit border + settings button (not scaled)
@@ -123,13 +127,13 @@ public class FilteredChatHud {
             gearW = gw;
             gearH = 11;
             ctx.fill(gearX, gearY, gearX + gearW, gearY + gearH, 0x66000000);
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(gear),
+            RenderHelper.drawTextWithShadow(ctx, client.textRenderer, Text.literal(gear),
                     gearX + 2, gearY + 1, 0xFFFFCC00);
 
             if (messages.isEmpty()) {
                 String lbl = config.name;
                 int lw = client.textRenderer.getWidth(lbl);
-                ctx.drawTextWithShadow(client.textRenderer, Text.literal(lbl),
+                RenderHelper.drawTextWithShadow(ctx, client.textRenderer, Text.literal(lbl),
                         x + (w - lw) / 2, y + h / 2 - 4, 0x88AAAAAA);
             }
         }
@@ -137,7 +141,7 @@ public class FilteredChatHud {
         // Title — always show when enabled and messages exist
         if (config.showTitle && !messages.isEmpty()) {
             String lbl = config.name;
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(lbl),
+            RenderHelper.drawTextWithShadow(ctx, client.textRenderer, Text.literal(lbl),
                     x + w - client.textRenderer.getWidth(lbl) - 4, y + 1, 0x55AAAAAA);
         }
     }
@@ -217,7 +221,7 @@ public class FilteredChatHud {
 
                 int tc = config.textColor & 0x00FFFFFF;
                 int ma = (int) (config.textOpacity * alpha) & 0xFF;
-                ctx.drawTextWithShadow(tr, rl.text, textX, lineY, (ma << 24) | tc);
+                RenderHelper.drawTextWithShadow(ctx, tr, rl.text, textX, lineY, (ma << 24) | tc);
 
                 lineBounds.add(new LineBounds(rl.text, textX, lineY, tw, scaled));
             }
@@ -239,17 +243,17 @@ public class FilteredChatHud {
     }
 
     private void renderHoverTooltip(DrawContext ctx, HoverEvent event, int mx, int my) {
-        if (event.getAction() == HoverEvent.Action.SHOW_TEXT) {
-            Text value = event.getValue(HoverEvent.Action.SHOW_TEXT);
+        if (event instanceof HoverEvent.ShowText st) {
+            Text value = st.value();
             String raw = value.getString();
             if (raw.contains("\n")) {
                 Style style = value.getStyle();
                 List<Text> lines = new ArrayList<>();
                 for (String line : raw.split("\n"))
                     lines.add(Text.literal(line).setStyle(style));
-                ctx.drawTooltip(client.textRenderer, lines, mx, my);
+                try { ctx.drawTooltip(client.textRenderer, lines, mx, my); } catch (Throwable ignored) {}
             } else {
-                ctx.drawTooltip(client.textRenderer, value, mx, my);
+                try { ctx.drawTooltip(client.textRenderer, value, mx, my); } catch (Throwable ignored) {}
             }
         }
     }
@@ -342,4 +346,56 @@ public class FilteredChatHud {
     private record FilteredMessage(Text content, long receivedTime, String timestamp) {}
     private record RenderLine(OrderedText text, long receivedTime) {}
     private record LineBounds(OrderedText text, int x, int y, int w, boolean scaled) {}
+
+    // ==================== Cross-version matrix reflection ====================
+
+    private static Object getMatrixStack(DrawContext ctx) {
+        try {
+            return GET_MATRICES.invoke(ctx);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void pushMatrix(Object stack) {
+        try { PUSH.invoke(stack); } catch (Exception ignored) {}
+    }
+
+    private static void popMatrix(Object stack) {
+        try { POP.invoke(stack); } catch (Exception ignored) {}
+    }
+
+    private static void translateMatrix(Object stack, float x, float y, float z) {
+        try { TRANSLATE.invoke(stack, x, y, z); } catch (Exception ignored) {}
+    }
+
+    private static void scaleMatrix(Object stack, float x, float y, float z) {
+        try { SCALE.invoke(stack, x, y, z); } catch (Exception ignored) {}
+    }
+
+    private static final Method GET_MATRICES;
+    private static final Method PUSH;
+    private static final Method POP;
+    private static final Method TRANSLATE;
+    private static final Method SCALE;
+
+    static {
+        Method gm = null, push = null, pop = null, tr = null, sc = null;
+        try {
+            gm = DrawContext.class.getMethod("getMatrices");
+            Class<?> ms = gm.getReturnType();
+            for (Method m : ms.getMethods()) {
+                if (m.getName().equals("push") && m.getParameterCount() == 0) push = m;
+                else if (m.getName().equals("pop") && m.getParameterCount() == 0) pop = m;
+                else if (m.getName().equals("translate") && m.getParameterCount() == 3) tr = m;
+                else if (m.getName().equals("scale") && m.getParameterCount() == 3) sc = m;
+            }
+        } catch (Exception ignored) {}
+        GET_MATRICES = gm;
+        PUSH = push;
+        POP = pop;
+        TRANSLATE = tr;
+        SCALE = sc;
+    }
 }
+

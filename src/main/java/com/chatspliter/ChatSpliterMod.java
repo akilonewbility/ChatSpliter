@@ -12,6 +12,7 @@ import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import java.net.URI;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,29 +45,38 @@ public class ChatSpliterMod implements ClientModInitializer {
 
     /** Inject a client-side test message with click and hover events. */
     public static void injectDebugMessage(MinecraftClient client) {
+        try {
         Text msg = Text.empty()
                 .append(Text.literal("[ChatSpliter Debug] ").formatted(Formatting.GOLD))
                 .append(Text.literal("[GitHub]").setStyle(Style.EMPTY
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com"))
+                        .withClickEvent(createOpenUrl("https://github.com"))
                         .withColor(Formatting.AQUA)))
                 .append(Text.literal(" "))
                 .append(Text.literal("[Say Hi]").setStyle(Style.EMPTY
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "hi"))
+                        .withClickEvent(createSuggestCommand("hi"))
                         .withColor(Formatting.GREEN)))
                 .append(Text.literal(" "))
                 .append(Text.literal("[Hover]").setStyle(Style.EMPTY
-                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                Text.literal("悬停测试成功！").formatted(Formatting.YELLOW)))
+                        .withHoverEvent(createShowText(Text.literal("悬停测试成功！").formatted(Formatting.YELLOW)))
                         .withColor(Formatting.YELLOW)));
 
-        // Route through our HUD system
         ChatHudManager.getInstance().onChatMessage(msg, (int) (System.currentTimeMillis() / 50));
 
-        // Also show in vanilla chat for comparison
         if (client.player != null) {
             client.player.sendMessage(msg, false);
         }
 
         LOGGER.info("[ChatSpliter] Debug test message injected.");
+        } catch (Throwable e) { LOGGER.warn("[ChatSpliter] Debug message failed: {}", e.toString()); }
+    }
+
+    private static ClickEvent createOpenUrl(String url) {
+        try { return new ClickEvent.OpenUrl(java.net.URI.create(url)); } catch (Throwable e) { return null; }
+    }
+    private static ClickEvent createSuggestCommand(String cmd) {
+        try { return new ClickEvent.SuggestCommand(cmd); } catch (Throwable e) { return null; }
+    }
+    private static HoverEvent createShowText(Text text) {
+        try { return new HoverEvent.ShowText(text); } catch (Throwable e) { return null; }
     }
 }

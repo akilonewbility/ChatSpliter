@@ -1,6 +1,7 @@
 package com.chatspliter.screen;
 
 import com.chatspliter.ChatSpliterMod;
+import com.chatspliter.RenderHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -34,9 +35,9 @@ public class DebugScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
         super.render(ctx, mx, my, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer,
+        RenderHelper.drawCenteredTextWithShadow(ctx, textRenderer,
                 Text.literal("点击下方按钮发送带点击/悬停事件的测试消息"), this.width / 2, 40, 0xAAAAAA);
-        ctx.drawCenteredTextWithShadow(textRenderer,
+        RenderHelper.drawCenteredTextWithShadow(ctx, textRenderer,
                 Text.literal("打开聊天栏(T)后在分离窗口中测试悬停和点击"), this.width / 2, 56, 0x888888);
     }
 
@@ -45,3 +46,4 @@ public class DebugScreen extends Screen {
         client.setScreen(parent);
     }
 }
+
