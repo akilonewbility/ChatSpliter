@@ -93,6 +93,11 @@ public class ConfigScreen extends Screen {
                 .dimensions(135, buttonY, 75, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
+                        Text.literal("调试"),
+                        btn -> client.setScreen(new DebugScreen(this)))
+                .dimensions(215, buttonY, 50, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
                         Text.translatable("chatspliter.button.done"),
                         btn -> saveAndClose())
                 .dimensions(this.width - 160, buttonY, 70, 20).build());

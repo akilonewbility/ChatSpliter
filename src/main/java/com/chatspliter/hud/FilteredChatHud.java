@@ -6,8 +6,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 import java.time.LocalTime;
@@ -30,6 +33,9 @@ public class FilteredChatHud {
 
     // Settings button bounds (set during render)
     private int gearX, gearY, gearW, gearH;
+
+    // Rendered line bounds for hover/click detection
+    private final List<LineBounds> lineBounds = new ArrayList<>();
 
     // Drag
     private boolean dragging, resizing;
@@ -171,6 +177,8 @@ public class FilteredChatHud {
         int di = anchored ? 1 : -1;
         int n = 0;
 
+        lineBounds.clear();
+
         while (anchored ? (i < end) : (i >= start)) {
             RenderLine rl = allLines.get(i);
             long ageMs = now - rl.receivedTime;
@@ -201,6 +209,8 @@ public class FilteredChatHud {
                 int tc = config.textColor & 0x00FFFFFF;
                 int ma = (int) (config.textOpacity * alpha) & 0xFF;
                 ctx.drawTextWithShadow(tr, rl.text, textX, lineY, (ma << 24) | tc);
+
+                lineBounds.add(new LineBounds(rl.text, textX, lineY, tw, scaled));
             }
             n++;
             if (n >= maxVis) break;
@@ -217,6 +227,41 @@ public class FilteredChatHud {
         if (ageSec < fullSec) return 255;
         if (ageSec >= total) return 0;
         return (int) (255 * (1.0 - (ageSec - fullSec) / fade));
+    }
+
+    // ==================== Hover / Click ====================
+
+    public Style getHoveredStyle(double mx, double my, int sw, int sh) {
+        int hx = MathHelper.clamp(config.x, 0, sw - config.width);
+        int hy = MathHelper.clamp(config.y, 0, sh - config.height);
+        float s = (float) config.scale;
+
+        for (LineBounds lb : lineBounds) {
+            int lx, ly, lw;
+            if (lb.scaled) {
+                lx = hx + (int)((lb.x - hx) * s);
+                ly = hy + (int)((lb.y - hy) * s);
+                lw = (int)(lb.w * s);
+            } else {
+                lx = lb.x;
+                ly = lb.y;
+                lw = lb.w;
+            }
+            if (mx >= lx && mx <= lx + lw && my >= ly && my <= ly + 9) {
+                int offset = (int) (mx - lx);
+                offset = lb.scaled ? (int)(offset / s) : offset;
+                return client.textRenderer.getTextHandler().getStyleAt(lb.text, offset);
+            }
+        }
+        return null;
+    }
+
+    public boolean handleClick(double mx, double my, int sw, int sh) {
+        Style style = getHoveredStyle(mx, my, sw, sh);
+        if (style == null || style.getClickEvent() == null) return false;
+        if (client.currentScreen != null)
+            return client.currentScreen.handleTextClick(style);
+        return false;
     }
 
     // ==================== Mouse ====================
@@ -271,4 +316,5 @@ public class FilteredChatHud {
 
     private record FilteredMessage(Text content, long receivedTime, String timestamp) {}
     private record RenderLine(OrderedText text, long receivedTime) {}
+    private record LineBounds(OrderedText text, int x, int y, int w, boolean scaled) {}
 }

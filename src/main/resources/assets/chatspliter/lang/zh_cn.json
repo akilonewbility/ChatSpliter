@@ -1,5 +1,6 @@
 {
     "chatspliter.key.open_config": "打开聊天分离器配置",
+    "chatspliter.key.debug_test": "注入调试测试消息",
     "chatspliter.config.title": "聊天分离器设置",
     "chatspliter.config.enabled": "启用模组",
     "chatspliter.config.hide_matched_from_main": "从主聊天隐藏已匹配消息",
