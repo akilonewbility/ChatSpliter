@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FilteredChatHud {
-    private static final long HISTORY_MS = 600_000;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public interface SettingsOpener {
@@ -58,16 +57,17 @@ public class FilteredChatHud {
         if (!config.enabled || !config.matches(message.getString())) return;
         messages.add(new FilteredMessage(message.copy(), System.currentTimeMillis(),
                 LocalTime.now().format(TIME_FMT)));
-        while (messages.size() > config.maxLines * 2) messages.remove(0);
+        while (messages.size() > config.maxHistory) messages.remove(0);
         scrolledLines = 0;
     }
 
     public void clear() { messages.clear(); scrolledLines = 0; }
 
     public void refresh() {
-        long cutoff = System.currentTimeMillis() - HISTORY_MS;
-        messages.removeIf(m -> m.receivedTime < cutoff);
-        while (messages.size() > config.maxLines * 2) messages.remove(0);
+        int mins = ChatSpliterConfig.getInstance().historyMinutes;
+        long cutoff = mins <= 0 ? 0 : System.currentTimeMillis() - (long) mins * 60_000L;
+        if (cutoff > 0) messages.removeIf(m -> m.receivedTime < cutoff);
+        while (messages.size() > config.maxHistory) messages.remove(0);
     }
 
     // ==================== Render ====================

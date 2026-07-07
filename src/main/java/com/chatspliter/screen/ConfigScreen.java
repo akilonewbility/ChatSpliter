@@ -46,6 +46,11 @@ public class ConfigScreen extends Screen {
                         (btn, val) -> {});
         addDrawableChild(enabledButton);
 
+        addDrawableChild(ButtonWidget.builder(
+                        Text.literal("全局设置"),
+                        btn -> client.setScreen(new GlobalConfigScreen(this)))
+                .dimensions(170, 32, 60, 20).build());
+
         hideMatchedButton = CyclingButtonWidget.onOffBuilder(config.hideMatchedFromMain)
                 .build(10, 56, 220, 20,
                         Text.translatable("chatspliter.config.hide_matched_from_main"),
@@ -163,7 +168,7 @@ public class ConfigScreen extends Screen {
         dst.textOpacity = src.textOpacity;
         dst.lineSpacing = src.lineSpacing;
         dst.showTimestamp = src.showTimestamp;
-        dst.maxLines = src.maxLines;
+        dst.maxHistory = src.maxHistory;
         dst.showTitle = src.showTitle;
         dst.textAlign = src.textAlign;
         dst.scrollDir = src.scrollDir;

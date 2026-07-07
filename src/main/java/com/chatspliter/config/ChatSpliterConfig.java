@@ -22,6 +22,9 @@ public class ChatSpliterConfig {
     @SerializedName("hideMatchedFromMain")
     public boolean hideMatchedFromMain = false;
 
+    @SerializedName("historyMinutes")
+    public int historyMinutes = 10;
+
     @SerializedName("filterGroups")
     public List<FilterGroup> filterGroups = new CopyOnWriteArrayList<>();
 
