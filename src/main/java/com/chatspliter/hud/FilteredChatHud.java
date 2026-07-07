@@ -7,6 +7,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -92,6 +93,14 @@ public class FilteredChatHud {
         }
 
         if (!messages.isEmpty()) renderMessages(ctx, x, y, w, h, useScale);
+
+        // Hover tooltip rendering (outside scale matrix)
+        if (!lineBounds.isEmpty()) {
+            double mx = client.mouse.getX() / client.getWindow().getScaleFactor();
+            double my = client.mouse.getY() / client.getWindow().getScaleFactor();
+            Style hovered = getHoveredStyle(mx, my, sw, sh);
+            if (hovered != null) renderHoverTooltip(ctx, hovered.getHoverEvent(), (int) mx, (int) my);
+        }
 
         if (useScale) {
             ctx.getMatrices().popMatrix();
@@ -227,6 +236,21 @@ public class FilteredChatHud {
         if (ageSec < fullSec) return 255;
         if (ageSec >= total) return 0;
         return (int) (255 * (1.0 - (ageSec - fullSec) / fade));
+    }
+
+    private void renderHoverTooltip(DrawContext ctx, HoverEvent event, int mx, int my) {
+        if (event instanceof HoverEvent.ShowText st) {
+            String raw = st.value().getString();
+            if (raw.contains("\n")) {
+                Style style = st.value().getStyle();
+                List<Text> lines = new ArrayList<>();
+                for (String line : raw.split("\n"))
+                    lines.add(Text.literal(line).setStyle(style));
+                ctx.drawTooltip(client.textRenderer, lines, mx, my);
+            } else {
+                ctx.drawTooltip(client.textRenderer, st.value(), mx, my);
+            }
+        }
     }
 
     // ==================== Hover / Click ====================
