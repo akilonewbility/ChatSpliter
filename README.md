@@ -23,7 +23,7 @@
 
 ## 运行要求
 
-- Minecraft **1.21.8**
+- Minecraft **1.21+**（编译目标 1.21.8）
 - Fabric Loader **>= 0.16.9**
 - Java **21+**
 - 无需其他依赖（纯 Mixin 实现，不依赖 Fabric API）
