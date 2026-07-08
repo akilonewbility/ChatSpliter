@@ -16,6 +16,8 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+
 public class ChatSpliterMod implements ClientModInitializer {
     public static final String MOD_ID = "chatspliter";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
@@ -47,15 +49,15 @@ public class ChatSpliterMod implements ClientModInitializer {
         Text msg = Text.empty()
                 .append(Text.literal("[ChatSpliter Debug] ").formatted(Formatting.GOLD))
                 .append(Text.literal("[GitHub]").setStyle(Style.EMPTY
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com"))
+                        .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com")))
                         .withColor(Formatting.AQUA)))
                 .append(Text.literal(" "))
                 .append(Text.literal("[Say Hi]").setStyle(Style.EMPTY
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "hi"))
+                        .withClickEvent(new ClickEvent.SuggestCommand("hi"))
                         .withColor(Formatting.GREEN)))
                 .append(Text.literal(" "))
                 .append(Text.literal("[Hover]").setStyle(Style.EMPTY
-                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        .withHoverEvent(new HoverEvent.ShowText(
                                 Text.literal("悬停测试成功！").formatted(Formatting.YELLOW)))
                         .withColor(Formatting.YELLOW)));
 

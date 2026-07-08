@@ -23,7 +23,7 @@ A client-side Minecraft Fabric mod that splits the vanilla chat into multiple in
 
 ## Requirements
 
-- Minecraft **1.21+** (compiled against 1.21)
+- Minecraft **1.21+** (compiled against 1.21.8)
 - Fabric Loader **>= 0.16.9**
 - Java **21+**
 - No other dependencies (pure mixin-based, no Fabric API required)
