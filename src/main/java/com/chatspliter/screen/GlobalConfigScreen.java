@@ -1,12 +1,10 @@
 package com.chatspliter.screen;
 
-import com.chatspliter.RenderHelper;
 import com.chatspliter.config.ChatSpliterConfig;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
-import net.minecraft.text.Style;
 import net.minecraft.util.math.MathHelper;
 
 public class GlobalConfigScreen extends Screen {
@@ -39,16 +37,14 @@ public class GlobalConfigScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
         super.render(ctx, mx, my, delta);
-        RenderHelper.drawCenteredTextWithShadow(ctx, textRenderer,
-                Text.literal("全局设置").setStyle(Style.EMPTY.withBold(true)),
-                this.width / 2, 10, 0xFFFFFF);
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("§l全局设置"), this.width / 2, 10, 0xFFFFFF);
 
         String value = config.historyMinutes <= 0 ? "无限制"
                 : (config.historyMinutes < 60 ? config.historyMinutes + " 分钟"
                 : (config.historyMinutes / 60) + " 小时"
                   + (config.historyMinutes % 60 > 0 ? " " + config.historyMinutes % 60 + " 分钟" : ""));
         String label = "历史记录保留时间：" + value;
-        RenderHelper.drawCenteredTextWithShadow(ctx, textRenderer, Text.literal(label), this.width / 2, 38, 0xFFAAAAAA);
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(label), this.width / 2, 38, 0xFFAAAAAA);
 
         // Slider track
         double frac = MathHelper.clamp(config.historyMinutes / (double) HISTORY_MAX, 0, 1);
@@ -58,9 +54,9 @@ public class GlobalConfigScreen extends Screen {
         ctx.fill(sliderX + fill - 3, sliderY + 4, sliderX + fill + 3, sliderY + 14, 0xFFFFFFFF);
 
         // Range labels
-        RenderHelper.drawTextWithShadow(ctx, textRenderer, Text.literal("无限制"), sliderX, sliderY + 16, 0x666666);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("无限制"), sliderX, sliderY + 16, 0x666666);
         String maxLabel = (HISTORY_MAX / 60) + " 小时";
-        RenderHelper.drawTextWithShadow(ctx, textRenderer, Text.literal(maxLabel),
+        ctx.drawTextWithShadow(textRenderer, Text.literal(maxLabel),
                 sliderX + sliderW - textRenderer.getWidth(maxLabel), sliderY + 16, 0x666666);
 
         if (dragging) {
@@ -105,4 +101,3 @@ public class GlobalConfigScreen extends Screen {
     @Override
     public void close() { client.setScreen(parent); }
 }
-

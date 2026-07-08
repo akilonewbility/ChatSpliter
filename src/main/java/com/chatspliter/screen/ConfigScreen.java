@@ -1,6 +1,5 @@
 package com.chatspliter.screen;
 
-import com.chatspliter.RenderHelper;
 import com.chatspliter.config.ChatSpliterConfig;
 import com.chatspliter.config.FilterGroup;
 import com.chatspliter.hud.ChatHudManager;
@@ -10,7 +9,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextWidget;
 import net.minecraft.text.Text;
-import net.minecraft.text.Style;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,13 +67,10 @@ public class ConfigScreen extends Screen {
             final int index = i;
             FilterGroup group = workingGroups.get(i);
 
-            Text statusLine = Text.empty()
-                    .append(Text.literal(group.enabled ? "●" : "○")
-                            .setStyle(Style.EMPTY.withColor(group.enabled ? 0x55FF55 : 0xAAAAAA)))
-                    .append(Text.literal(" " + group.name + "  "))
-                    .append(Text.literal("[" + group.keywords.size() + " kw]")
-                            .setStyle(Style.EMPTY.withColor(0xAAAAAA)));
-            addDrawableChild(new TextWidget(14, y + 6, 200, 12, statusLine, textRenderer));
+            String statusIcon = group.enabled ? "§a●" : "§7○";
+            addDrawableChild(new TextWidget(14, y + 6, 200, 12,
+                    Text.literal(statusIcon + " " + group.name + "  §7[" + group.keywords.size() + " kw]"),
+                    textRenderer));
 
             addDrawableChild(ButtonWidget.builder(
                             Text.literal("⚙"),
@@ -197,9 +192,8 @@ public class ConfigScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        RenderHelper.drawTextWithShadow(context, textRenderer,
+        context.drawTextWithShadow(textRenderer,
                 Text.literal(workingGroups.size() + " groups"),
                 this.width - 100, 86, 0x666666);
     }
 }
-
