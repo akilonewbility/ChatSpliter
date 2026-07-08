@@ -33,7 +33,9 @@ public abstract class MouseMixin {
     @Unique
     private boolean shouldHandle() {
         var s = MinecraftClient.getInstance().currentScreen;
-        return s == null || s instanceof ChatScreen;
+        // Only intercept mouse events when chat screen is open,
+        // to prevent accidental dragging of HUD windows during gameplay.
+        return s instanceof ChatScreen;
     }
 
     @Inject(method = "onMouseButton", at = @At("HEAD"), cancellable = true)
